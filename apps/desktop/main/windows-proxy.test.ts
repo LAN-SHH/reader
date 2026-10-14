@@ -101,16 +101,20 @@ describe("Windows system proxy", () => {
   it("expands partial wildcards like 172.2* into full ranges", () => {
     const env = convert({ proxy: "localhost:7890", bypass: "172.2*" });
     const bypass = env.NO_PROXY!.split(",");
-    expect(bypass).toContain("172.20.*.*");
-    expect(bypass).toContain("172.21.*.*");
-    expect(bypass).toContain("172.29.*.*");
-    expect(bypass).toHaveLength(13); // localhost, 127.0.0.1, ::1, + 10 ranges (172.20-172.29)
+    // Each range (172.20-172.29) generates CIDR + IP range = 2 entries
+    expect(bypass).toContain("172.20.0.0/16");
+    expect(bypass).toContain("172.20.0.0-172.20.255.255");
+    expect(bypass).toContain("172.29.0.0/16");
+    expect(bypass).toContain("172.29.0.0-172.29.255.255");
+    expect(bypass).toHaveLength(23); // localhost, 127.0.0.1, ::1, + 10 ranges * 2 entries
   });
   it("expands partial wildcards in complex bypass lists", () => {
     const bypass = "*jd.com;localhost;172.2*;192.168.*";
     const env = convert({ proxy: "localhost:7890", bypass });
-    expect(env.NO_PROXY).toContain("172.20.*.*");
-    expect(env.NO_PROXY).toContain("172.29.*.*");
+    expect(env.NO_PROXY).toContain("172.20.0.0/16");
+    expect(env.NO_PROXY).toContain("172.20.0.0-172.20.255.255");
+    expect(env.NO_PROXY).toContain("172.29.0.0/16");
+    expect(env.NO_PROXY).toContain("172.29.0.0-172.29.255.255");
     expect(env.NO_PROXY).toContain("192.168.0.0/16");
     expect(env.NO_PROXY).toContain("jd.com"); // *jd.com → jd.com (matches .jd.com)
   });

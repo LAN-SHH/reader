@@ -67,7 +67,10 @@ function bypassEntries(entry: string): string[] {
     for (let i = 0; i <= 9; i++) {
       const secondOctet = `${secondPrefix}${i}`;
       if (Number(secondOctet) <= 255) {
-        results.push(`${first}.${secondOctet}.*.*`);
+        // Convert to CIDR and IP range format like full wildcard handling
+        const start = `${first}.${secondOctet}.0.0`;
+        const end = `${first}.${secondOctet}.255.255`;
+        results.push(`${start}/16`, `${start}-${end}`);
       }
     }
     return results;
