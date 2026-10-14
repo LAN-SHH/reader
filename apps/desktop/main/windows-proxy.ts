@@ -50,7 +50,29 @@ function bypassEntries(entry: string): string[] {
     const host = hostname().toLowerCase();
     return ["localhost", host, host.split(".")[0]];
   }
-  if (!entry.includes("*") || entry.startsWith("*.")) return [entry];
+
+  // Handle domain wildcards: *example.com → .example.com
+  if (entry.startsWith("*") && entry.includes(".")) {
+    return [entry.replace(/^\*/, "")];
+  }
+
+  if (!entry.includes("*")) return [entry];
+  if (entry.startsWith("*.")) return [entry];
+
+  // Handle partial wildcard like "172.2*" (matches 172.20.x.x to 172.29.x.x)
+  const partialMatch = /^(\d+)\.(\d+)\*$/.exec(entry);
+  if (partialMatch) {
+    const [, first, secondPrefix] = partialMatch;
+    const results: string[] = [];
+    for (let i = 0; i <= 9; i++) {
+      const secondOctet = `${secondPrefix}${i}`;
+      if (Number(secondOctet) <= 255) {
+        results.push(`${first}.${secondOctet}.*.*`);
+      }
+    }
+    return results;
+  }
+
   const octets = entry.split(".");
   const prefix = octets.indexOf("*");
   if (

@@ -97,10 +97,11 @@ export async function resolveSystemProxyEnvironment(
       { timeout: 5000, maxBuffer: 256 * 1024 },
     );
     return { env: systemProxyEnvironment(inherited, JSON.parse(stdout)) };
-  } catch {
+  } catch (error) {
     // Proxy conversion is optional at startup. Native command failures may
     // contain private configuration, so keep the diagnostic free of raw output.
-    console.warn("无法应用系统代理，Reader 将沿用启动环境。");
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn("无法应用系统代理，Reader 将沿用启动环境。", message);
     return {
       env: { ...inherited },
       warning: "无法读取或转换系统代理，当前沿用启动环境。可改用手动代理。",

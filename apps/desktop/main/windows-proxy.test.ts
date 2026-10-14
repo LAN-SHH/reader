@@ -98,6 +98,30 @@ describe("Windows system proxy", () => {
       `localhost,127.0.0.1,::1,${cidr},${range}`,
     );
   });
+  it("expands partial wildcards like 172.2* into full ranges", () => {
+    const env = convert({ proxy: "localhost:7890", bypass: "172.2*" });
+    const bypass = env.NO_PROXY!.split(",");
+    expect(bypass).toContain("172.20.*.*");
+    expect(bypass).toContain("172.21.*.*");
+    expect(bypass).toContain("172.29.*.*");
+    expect(bypass).toHaveLength(13); // localhost, 127.0.0.1, ::1, + 10 ranges (172.20-172.29)
+  });
+  it("expands partial wildcards in complex bypass lists", () => {
+    const bypass = "*jd.com;localhost;172.2*;192.168.*";
+    const env = convert({ proxy: "localhost:7890", bypass });
+    expect(env.NO_PROXY).toContain("172.20.*.*");
+    expect(env.NO_PROXY).toContain("172.29.*.*");
+    expect(env.NO_PROXY).toContain("192.168.0.0/16");
+    expect(env.NO_PROXY).toContain("jd.com"); // *jd.com → jd.com (matches .jd.com)
+  });
+  it("converts domain wildcards like *example.com to .example.com", () => {
+    const bypass = "*jd.com;*zhihu.com;*.local";
+    const env = convert({ proxy: "localhost:7890", bypass });
+    const parts = env.NO_PROXY!.split(",");
+    expect(parts).toContain("jd.com");
+    expect(parts).toContain("zhihu.com");
+    expect(parts).toContain(".local");
+  });
   it("accepts <local> case-insensitively and deduplicates local hosts", () => {
     expect(
       convert({
